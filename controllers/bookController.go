@@ -25,7 +25,6 @@ func saveBook(c *gin.Context) {
 		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "Bad JSON Body"})
 		return
 	}
-
 	book := models.NewBookBuilder().
 		SetID().
 		SetTitle(newBook.Title).
@@ -33,10 +32,9 @@ func saveBook(c *gin.Context) {
 		SetPages(newBook.Pages).
 		SetCreatedAt().
 		Build()
-
 	bk, er := repositories.AddBook(*book)
 	if er != nil {
-		log.Panicln(er)
+		log.Println(er)
 		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "Book with ID already exists"})
 		return
 	}
@@ -51,22 +49,20 @@ func getAllBooks(c *gin.Context) {
 func getBookById(c *gin.Context) {
 	book, err := repositories.GetBook(c.Param("id"))
 	if err != nil {
-		log.Panicln(err)
+		log.Println(err)
 		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "Book not found."})
 		return
 	}
-
 	c.IndentedJSON(http.StatusOK, book)
 }
 
 func removeBookById(c *gin.Context) {
 	state, er := repositories.RemoveBook(c.Param("id"))
 	if er != nil {
-		log.Panicln(er)
+		log.Println(er)
 		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "Book not found."})
 		return
 	}
-
 	c.IndentedJSON(http.StatusOK, state)
 
 }
