@@ -13,9 +13,7 @@ func AddBookEndpoints(routing *gin.RouterGroup) {
 	bookEndpoints := routing.Group("/books")
 	{
 		bookEndpoints.POST("/", saveBook)
-		bookEndpoints.GET("/", getAllBooks)
 		bookEndpoints.GET("/:id", getBookById)
-		bookEndpoints.DELETE("/:id", removeBookById)
 	}
 }
 
@@ -26,7 +24,7 @@ func saveBook(c *gin.Context) {
 		return
 	}
 	book := models.NewBookBuilder().
-		SetID().
+		SetAutoID().
 		SetTitle(newBook.Title).
 		SetAuthor(newBook.Author).
 		SetPages(newBook.Pages).
@@ -35,15 +33,10 @@ func saveBook(c *gin.Context) {
 	bk, er := repositories.AddBook(*book)
 	if er != nil {
 		log.Println(er)
-		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "Book with ID already exists"})
+		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "Something went wrong"})
 		return
 	}
 	c.IndentedJSON(http.StatusOK, bk)
-}
-
-func getAllBooks(c *gin.Context) {
-	books := repositories.GetAllBooks()
-	c.IndentedJSON(http.StatusOK, books)
 }
 
 func getBookById(c *gin.Context) {
@@ -54,15 +47,4 @@ func getBookById(c *gin.Context) {
 		return
 	}
 	c.IndentedJSON(http.StatusOK, book)
-}
-
-func removeBookById(c *gin.Context) {
-	state, er := repositories.RemoveBook(c.Param("id"))
-	if er != nil {
-		log.Println(er)
-		c.IndentedJSON(http.StatusBadRequest, gin.H{"message": "Book not found."})
-		return
-	}
-	c.IndentedJSON(http.StatusOK, state)
-
 }

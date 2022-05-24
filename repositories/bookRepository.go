@@ -1,55 +1,85 @@
 package repositories
 
 import (
-	errors "errors"
 	models "mrkresnofatih/gobookapi/models"
+
+	"log"
+
+	aws "github.com/aws/aws-sdk-go/aws"
+	session "github.com/aws/aws-sdk-go/aws/session"
+	dynamodb "github.com/aws/aws-sdk-go/service/dynamodb"
+	dynamodbattribute "github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 )
 
-var bookDb = []models.Book{
-	{ID: "sampleID1", Title: "The Great Gatsby", Author: "F. Scott Fitzgerald", Pages: 134, CreatedAt: 1653299667922},
-	{ID: "sampleID2", Title: "The Catcher in the Rye", Author: "J. D. Salinger", Pages: 219, CreatedAt: 1653279653918},
-	{ID: "sampleID3", Title: "Invisible Man", Author: "Ralph Ellison", Pages: 198, CreatedAt: 1653229546272},
+func getDynamoDbSvc() (*dynamodb.DynamoDB, error) {
+	// ENV AWS_ACCESS_KEY_ID & AWS_SECRET_ACCESS_KEY
+	sess, err := session.NewSession(&aws.Config{
+		Region: aws.String("ap-southeast-1"),
+	})
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	svc := dynamodb.New(sess)
+	return svc, nil
 }
 
 func AddBook(book models.Book) (*models.Book, error) {
-	for _, v := range bookDb {
-		if v.ID == book.ID {
-			e := errors.New("ID already exists!")
-			return nil, e
-		}
+	svc, errr := getDynamoDbSvc()
+	if errr != nil {
+		log.Println(errr)
+		return nil, errr
 	}
 
-	bookDb = append(bookDb, book)
+	info, err := dynamodbattribute.MarshalMap(book)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	putRequest := &dynamodb.PutItemInput{
+		Item:      info,
+		TableName: aws.String("GoBookAPI-Books"),
+	}
+
+	_, er1 := svc.PutItem(putRequest)
+	if er1 != nil {
+		log.Println(er1)
+		return nil, er1
+	}
+
 	return &book, nil
 }
 
 func GetBook(id string) (*models.Book, error) {
-	for _, v := range bookDb {
-		if v.ID == id {
-			return &v, nil
-		}
+	svc, err := getDynamoDbSvc()
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	log.Println(id)
+	key := map[string]*dynamodb.AttributeValue{
+		"bookId": {
+			S: aws.String(id),
+		},
 	}
 
-	e := errors.New("Book with ID doesn't exist!")
-	return nil, e
-}
-
-func GetAllBooks() []models.Book {
-	return bookDb
-}
-
-func RemoveBook(bookId string) (bool, error) {
-	foundIndex := -1
-	for i, v := range bookDb {
-		if v.ID == bookId {
-			foundIndex = i
-		}
+	input := &dynamodb.GetItemInput{
+		Key:       key,
+		TableName: aws.String("GoBookAPI-Books"),
 	}
-	if foundIndex == -1 {
-		e := errors.New("Book not found")
-		return false, e
+	result, er := svc.GetItem(input)
+	if er != nil {
+		log.Println(er)
+		return nil, er
 	}
 
-	bookDb = append(bookDb[:foundIndex], bookDb[foundIndex+1:]...)
-	return true, nil
+	book := models.Book{}
+	errr := dynamodbattribute.UnmarshalMap(result.Item, &book)
+	if errr != nil {
+		log.Println(errr)
+		return nil, errr
+	}
+	return &book, nil
 }

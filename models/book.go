@@ -22,7 +22,12 @@ func NewBookBuilder() *BookBuilder {
 	return &BookBuilder{Book: &Book{}}
 }
 
-func (b *BookBuilder) SetID() *BookBuilder {
+func (b *BookBuilder) SetID(id string) *BookBuilder {
+	b.Book.ID = id
+	return b
+}
+
+func (b *BookBuilder) SetAutoID() *BookBuilder {
 	b.Book.ID = utils.GenerateId()
 	return b
 }
